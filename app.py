@@ -2,7 +2,6 @@ import streamlit as st
 import sqlite3
 import requests
 import os
-import pandas as pd
 from datetime import datetime, timezone, timedelta
 import google.generativeai as genai
 
@@ -163,6 +162,60 @@ elif st.session_state.step == 3:
                 for row in conn.execute("SELECT departure_time, destination FROM manual_timetables WHERE station_name=? AND railway_name=? AND direction_name=? AND calendar=? AND departure_time>=? ORDER BY departure_time ASC LIMIT 3", (st.session_state.station, rw["title"], d["name"], cal_type, now_str)).fetchall():
                     next_trains.append({"time": row[0], "destination": row[1]})
                 conn.close()
+                
+            # ==========================================
+            # 🌟 NEW: 電光掲示板UIの表示
+            # ==========================================
+            if next_trains:
+                board_html = """
+                <style>
+                @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+                .led-board {
+                    background-color: #111;
+                    border: 6px solid #222;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin: 20px 0;
+                    font-family: 'DotGothic16', sans-serif;
+                    box-shadow: inset 0px 0px 10px #000;
+                }
+                .led-header {
+                    display: flex;
+                    color: #ff5555;
+                    font-size: 14px;
+                    border-bottom: 1px solid #444;
+                    padding-bottom: 5px;
+                    margin-bottom: 10px;
+                }
+                .led-row {
+                    display: flex;
+                    font-size: 22px;
+                    padding: 5px 0;
+                    align-items: center;
+                }
+                .led-time { color: #00ff00; text-shadow: 0 0 4px #00ff00; width: 25%; }
+                .led-type { color: #ff9900; text-shadow: 0 0 4px #ff9900; width: 30%; text-align: center; }
+                .led-dest { color: #ff9900; text-shadow: 0 0 4px #ff9900; width: 45%; text-align: right; }
+                </style>
+                <div class="led-board">
+                    <div class="led-header">
+                        <span style="width:25%">時刻</span>
+                        <span style="width:30%; text-align:center">種別</span>
+                        <span style="width:45%; text-align:right">行先</span>
+                    </div>
+                """
+                for t in next_trains:
+                    board_html += f"""
+                    <div class="led-row">
+                        <span class="led-time">{t['time']}</span>
+                        <span class="led-type">各駅停車</span>
+                        <span class="led-dest">{t['destination']}</span>
+                    </div>
+                    """
+                board_html += "</div>"
+                
+                # HTMLをStreamlitに描画
+                st.markdown(board_html, unsafe_allow_html=True)
                 
             with st.spinner("AIが案内を作成中..."):
                 ans = model.generate_content(f"{st.session_state.station}駅 {rw['title']} {d['name']}方面。現在{now_str}。データ:{next_trains}。駅員風に案内して。").text
