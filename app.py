@@ -164,10 +164,11 @@ elif st.session_state.step == 3:
                 conn.close()
                 
             # ==========================================
-            # 🌟 NEW: 電光掲示板UIの表示
+            # 🌟 NEW: 電光掲示板UIの表示（完璧なインデント版）
             # ==========================================
             if next_trains:
-                board_html = """
+                # CSS部分は通常の文字列（波括弧によるPythonエラーを防ぐため）
+                css_part = """
                 <style>
                 @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
                 .led-board {
@@ -197,6 +198,10 @@ elif st.session_state.step == 3:
                 .led-type { color: #ff9900; text-shadow: 0 0 4px #ff9900; width: 30%; text-align: center; }
                 .led-dest { color: #ff9900; text-shadow: 0 0 4px #ff9900; width: 45%; text-align: right; }
                 </style>
+                """
+                
+                # HTML部分は変数を入れるためf文字列
+                board_html = f"""
                 <div class="led-board">
                     <div class="led-header">
                         <span style="width:25%">時刻</span>
@@ -204,6 +209,7 @@ elif st.session_state.step == 3:
                         <span style="width:45%; text-align:right">行先</span>
                     </div>
                 """
+                
                 for t in next_trains:
                     board_html += f"""
                     <div class="led-row">
@@ -212,10 +218,12 @@ elif st.session_state.step == 3:
                         <span class="led-dest">{t['destination']}</span>
                     </div>
                     """
+                
                 board_html += "</div>"
                 
-                # HTMLをStreamlitに描画
-                st.markdown(board_html, unsafe_allow_html=True)
+                # ここが重要！ 改行をすべて削除してStreamlitの誤作動を完全に防ぐ
+                final_html = (css_part + board_html).replace('\n', '')
+                st.markdown(final_html, unsafe_allow_html=True)
                 
             with st.spinner("AIが案内を作成中..."):
                 ans = model.generate_content(f"{st.session_state.station}駅 {rw['title']} {d['name']}方面。現在{now_str}。データ:{next_trains}。駅員風に案内して。").text
